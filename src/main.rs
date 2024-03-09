@@ -2,10 +2,12 @@ use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServe
 use env_logger::{self};
 use log::{info, warn};
 use miden_wasm::verify_program;
+use risc0_zkvm::Receipt;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use sp1_core::SP1Verifier;
 use std::fs;
+extern crate bincode;
 
 #[derive(Deserialize, Debug)]
 struct ProofDataSP1 {
@@ -21,12 +23,18 @@ struct ProofDataMiden {
     proofs_frontend: String,
 }
 
+#[derive(Deserialize, Debug)]
+struct ProodDataRisc0 {
+    receipt: String,
+    image_id: [u32; 8],
+}
+
 #[derive(Serialize)]
 struct VerificationResult {
     is_valid: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Proof {
     proof: Vec<u8>, // Use Vec<u8> to hold the array elements
 }
@@ -36,8 +44,13 @@ async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Verifying proofs for the world!")
 }
 
+#[get("/ping")]
+async fn ping() -> impl Responder {
+    HttpResponse::Ok().body("true")
+}
+
 #[post("/verify-sp1")]
-async fn verify_proof(data: web::Json<ProofDataSP1>) -> impl Responder {
+async fn verify_sp1(data: web::Json<ProofDataSP1>) -> impl Responder {
     info!("{:?}", data);
     let proof_data = data.into_inner();
     let proof = proof_data.proof;
@@ -74,7 +87,7 @@ async fn verify_proof(data: web::Json<ProofDataSP1>) -> impl Responder {
 }
 
 #[post("/verify-miden")]
-async fn verify(data: web::Json<ProofDataMiden>) -> impl Responder {
+async fn verify_miden(data: web::Json<ProofDataMiden>) -> impl Responder {
     info!("{:?}", data);
     let proof_data = data.into_inner();
     let code_frontend = proof_data.code_frontend;
@@ -101,6 +114,27 @@ async fn verify(data: web::Json<ProofDataMiden>) -> impl Responder {
     }
 }
 
+#[post("/verify-risc0")]
+async fn verify_risc0(data: web::Json<ProodDataRisc0>) -> impl Responder {
+    info!("{:?}", data);
+    let proof_data = data.into_inner();
+    let receipt_data = proof_data.receipt;
+    let image_id = proof_data.image_id;
+    let receipt_up = fs::read_to_string(&receipt_data).expect("Failed to read receipt file");
+    let receipt_bytes: Proof = serde_json::from_str(&receipt_up).unwrap();
+    let receipt: Receipt = bincode::deserialize(&receipt_bytes.proof).unwrap();
+    let verification_result = receipt.verify(image_id);
+    match verification_result {
+        Ok(_) => {
+            return HttpResponse::Ok().json(VerificationResult { is_valid: true });
+        }
+        Err(err) => {
+            warn!("Verification failed: {:?}", err);
+            HttpResponse::Ok().json(VerificationResult { is_valid: false })
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "debug");
@@ -111,9 +145,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(logger)
             .service(hello)
-            .service(verify_proof)
-            .service(verify)
+            .service(verify_sp1)
+            .service(verify_miden)
+            .service(verify_risc0)
     })
+    .workers(10)
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
