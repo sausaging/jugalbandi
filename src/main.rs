@@ -1,4 +1,6 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
+use env_logger::{self};
+use log::{info, warn};
 use miden_wasm::verify_program;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
@@ -6,13 +8,13 @@ use sp1_core::SP1Verifier;
 use std::fs;
 
 #[derive(Deserialize, Debug)]
-struct ProofData {
+struct ProofDataSP1 {
     proof: String,
     elf: String,
 }
 
 #[derive(Deserialize, Debug)]
-struct ProofDataM {
+struct ProofDataMiden {
     code_frontend: String,
     inputs_frontend: String,
     outputs_frontend: String,
@@ -25,7 +27,7 @@ struct VerificationResult {
 }
 
 #[derive(Deserialize)]
-struct Miden {
+struct Proof {
     proof: Vec<u8>, // Use Vec<u8> to hold the array elements
 }
 
@@ -35,8 +37,8 @@ async fn hello() -> impl Responder {
 }
 
 #[post("/verify-sp1")]
-async fn verify_proof(data: web::Json<ProofData>) -> impl Responder {
-    println!("{:?}", data);
+async fn verify_proof(data: web::Json<ProofDataSP1>) -> impl Responder {
+    info!("{:?}", data);
     let proof_data = data.into_inner();
     let proof = proof_data.proof;
     let elf = proof_data.elf;
@@ -59,28 +61,28 @@ async fn verify_proof(data: web::Json<ProofData>) -> impl Responder {
             match verification_result {
                 Ok(_) => HttpResponse::Ok().json(VerificationResult { is_valid: true }),
                 Err(err) => {
-                    eprintln!("Verification failed: {:?}", err);
+                    warn!("Verification failed: {:?}", err);
                     HttpResponse::Ok().json(VerificationResult { is_valid: false })
                 }
             }
         }
         Err(err) => {
-            eprintln!("Error parsing proof JSON: {}", err);
+            warn!("Error parsing proof JSON: {}", err);
             HttpResponse::BadRequest().json(VerificationResult { is_valid: false })
         }
     }
 }
 
-#[post("/verify")]
-async fn verify(data: web::Json<ProofDataM>) -> impl Responder {
-    println!("{:?}", data);
+#[post("/verify-miden")]
+async fn verify(data: web::Json<ProofDataMiden>) -> impl Responder {
+    info!("{:?}", data);
     let proof_data = data.into_inner();
     let code_frontend = proof_data.code_frontend;
     let inputs_frontend = proof_data.inputs_frontend;
     let outputs_frontend = proof_data.outputs_frontend;
     let proof_data =
         fs::read_to_string(&proof_data.proofs_frontend).expect("Failed to read proof file");
-    let parsed_data: Miden = serde_json::from_str(&proof_data).unwrap();
+    let parsed_data: Proof = serde_json::from_str(&proof_data).unwrap();
     let proof = parsed_data.proof;
     let verification_result =
         verify_program(&code_frontend, &inputs_frontend, &outputs_frontend, proof);
@@ -93,7 +95,7 @@ async fn verify(data: web::Json<ProofDataM>) -> impl Responder {
             }
         }
         Err(err) => {
-            eprintln!("Verification failed: {:?}", err);
+            warn!("Verification failed: {:?}", err);
             HttpResponse::Ok().json(VerificationResult { is_valid: false })
         }
     }
@@ -101,8 +103,13 @@ async fn verify(data: web::Json<ProofDataM>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "debug");
+    std::env::set_var("RUST_BACKTRACE", "1");
+    env_logger::init();
     HttpServer::new(|| {
+        let logger = Logger::default();
         App::new()
+            .wrap(logger)
             .service(hello)
             .service(verify_proof)
             .service(verify)
