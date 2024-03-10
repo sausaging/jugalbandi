@@ -11,16 +11,16 @@ extern crate bincode;
 
 #[derive(Deserialize, Debug)]
 struct ProofDataSP1 {
-    proof: String,
-    elf: String,
+    proof_file_path: String,
+    elf_file_path: String,
 }
 
 #[derive(Deserialize, Debug)]
 struct ProofDataMiden {
-    code_frontend: String,
-    inputs_frontend: String,
-    outputs_frontend: String,
-    proofs_frontend: String,
+    code_front_end: String,
+    inputs_front_end: String,
+    outputs_front_end: String,
+    proof_file_path: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -39,22 +39,27 @@ struct Proof {
     proof: Vec<u8>, // Use Vec<u8> to hold the array elements
 }
 
+#[derive(Serialize)]
+struct Ping {
+    success: bool,
+}
+
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Verifying proofs for the world!")
 }
 
-#[get("/ping")]
+#[post("/ping")]
 async fn ping() -> impl Responder {
-    HttpResponse::Ok().body("true")
+    HttpResponse::Ok().json(Ping { success: true })
 }
 
-#[post("/verify-sp1")]
+#[post("/sp1-verify")]
 async fn verify_sp1(data: web::Json<ProofDataSP1>) -> impl Responder {
     info!("{:?}", data);
     let proof_data = data.into_inner();
-    let proof = proof_data.proof;
-    let elf = proof_data.elf;
+    let proof = proof_data.proof_file_path;
+    let elf = proof_data.elf_file_path;
     // Read proof data from file
     let proof_json = fs::read_to_string(&proof).expect("Failed to read proof file");
 
@@ -86,16 +91,16 @@ async fn verify_sp1(data: web::Json<ProofDataSP1>) -> impl Responder {
     }
 }
 
-#[post("/verify-miden")]
+#[post("/miden-verify")]
 async fn verify_miden(data: web::Json<ProofDataMiden>) -> impl Responder {
     info!("{:?}", data);
     let proof_data = data.into_inner();
-    let code_frontend = proof_data.code_frontend;
-    let inputs_frontend = proof_data.inputs_frontend;
-    let outputs_frontend = proof_data.outputs_frontend;
+    let code_frontend = proof_data.code_front_end;
+    let inputs_frontend = proof_data.inputs_front_end;
+    let outputs_frontend = proof_data.outputs_front_end;
     let proof_data =
-        fs::read_to_string(&proof_data.proofs_frontend).expect("Failed to read proof file");
-    let parsed_data: Proof = serde_json::from_str(&proof_data).unwrap();
+        fs::read_to_string(&proof_data.proof_file_path).expect("Failed to read proof file");
+    let parsed_data: Proof = serde_json::from_str(&proof_data).unwrap(); //@todo error occured here
     let proof = parsed_data.proof;
     let verification_result =
         verify_program(&code_frontend, &inputs_frontend, &outputs_frontend, proof);
@@ -148,6 +153,7 @@ async fn main() -> std::io::Result<()> {
             .service(verify_sp1)
             .service(verify_miden)
             .service(verify_risc0)
+            .service(ping)
     })
     .workers(10)
     .bind(("127.0.0.1", 8080))?
