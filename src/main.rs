@@ -25,8 +25,8 @@ struct ProofDataMiden {
 
 #[derive(Deserialize, Debug)]
 struct ProodDataRisc0 {
-    receipt: String,
-    image_id: [u32; 8],
+    proof_file_path: String,
+    risc_zero_image_id: String,
 }
 
 #[derive(Serialize)]
@@ -61,31 +61,45 @@ async fn verify_sp1(data: web::Json<ProofDataSP1>) -> impl Responder {
     let proof = proof_data.proof_file_path;
     let elf = proof_data.elf_file_path;
     // Read proof data from file
-    let proof_json = fs::read_to_string(&proof).expect("Failed to read proof file");
+    let proof_json = fs::read_to_string(&proof);
 
-    // Attempt to deserialize JSON proof
-    let parsed_proof: Result<
-        sp1_core::SP1ProofWithIO<sp1_core::utils::BabyBearBlake3>,
-        serde_json::Error,
-    > = from_str(&proof_json);
-
-    match parsed_proof {
+    match proof_json {
         Ok(proof) => {
-            // Read exec_code from disk
-            let elf = fs::read(&elf).expect("Failed to read elf");
-            // Verification using SP1Verifier
-            let verification_result = SP1Verifier::verify(&elf, &proof);
+            let parsed_proof: Result<
+                sp1_core::SP1ProofWithIO<sp1_core::utils::BabyBearBlake3>,
+                serde_json::Error,
+            > = from_str(&proof);
 
-            match verification_result {
-                Ok(_) => HttpResponse::Ok().json(VerificationResult { is_valid: true }),
+            match parsed_proof {
+                Ok(proof) => {
+                    // Read exec_code from disk
+                    let elf_res = fs::read(&elf);
+
+                    if elf_res.is_err() {
+                        warn!("Error reading ELF file");
+                        return HttpResponse::BadRequest()
+                            .json(VerificationResult { is_valid: false });
+                    }
+                    let elf = elf_res.unwrap();
+                    // Verification using SP1Verifier
+                    let verification_result = SP1Verifier::verify(&elf, &proof);
+
+                    match verification_result {
+                        Ok(_) => HttpResponse::Ok().json(VerificationResult { is_valid: true }),
+                        Err(err) => {
+                            warn!("Verification failed: {:?}", err);
+                            HttpResponse::Ok().json(VerificationResult { is_valid: false })
+                        }
+                    }
+                }
                 Err(err) => {
-                    warn!("Verification failed: {:?}", err);
-                    HttpResponse::Ok().json(VerificationResult { is_valid: false })
+                    warn!("Error parsing proof JSON: {}", err);
+                    HttpResponse::BadRequest().json(VerificationResult { is_valid: false })
                 }
             }
         }
-        Err(err) => {
-            warn!("Error parsing proof JSON: {}", err);
+        Err(_) => {
+            warn!("Error reading proof file");
             HttpResponse::BadRequest().json(VerificationResult { is_valid: false })
         }
     }
@@ -98,8 +112,13 @@ async fn verify_miden(data: web::Json<ProofDataMiden>) -> impl Responder {
     let code_frontend = proof_data.code_front_end;
     let inputs_frontend = proof_data.inputs_front_end;
     let outputs_frontend = proof_data.outputs_front_end;
-    let proof_data =
-        fs::read_to_string(&proof_data.proof_file_path).expect("Failed to read proof file");
+    let proof_data_result =
+        fs::read_to_string(&proof_data.proof_file_path);
+    if proof_data_result.is_err() {
+        warn!("Error reading proof file");
+        return HttpResponse::BadRequest().json(VerificationResult { is_valid: false });
+    }
+    let proof_data = proof_data_result.unwrap();
     let parsed_data: Proof = serde_json::from_str(&proof_data).unwrap(); //@todo error occured here
     let proof = parsed_data.proof;
     let verification_result =
@@ -119,15 +138,43 @@ async fn verify_miden(data: web::Json<ProofDataMiden>) -> impl Responder {
     }
 }
 
-#[post("/verify-risc0")]
+#[post("/risc0-verify")]
 async fn verify_risc0(data: web::Json<ProodDataRisc0>) -> impl Responder {
     info!("{:?}", data);
     let proof_data = data.into_inner();
-    let receipt_data = proof_data.receipt;
-    let image_id = proof_data.image_id;
-    let receipt_up = fs::read_to_string(&receipt_data).expect("Failed to read receipt file");
-    let receipt_bytes: Proof = serde_json::from_str(&receipt_up).unwrap();
-    let receipt: Receipt = bincode::deserialize(&receipt_bytes.proof).unwrap();
+    let receipt_data = proof_data.proof_file_path;
+    let image_id_str = proof_data.risc_zero_image_id;
+    let numbers_str: Vec<&str> = image_id_str
+        .trim_matches(|c| c == '[' || c == ']')
+        .split(", ")
+        .collect();
+    println!("{:?}", numbers_str);
+    if numbers_str.len() != 8 {
+        panic!("Expected 8 numbers, found {}", numbers_str.len());
+    }
+    let mut image_id: [u32; 8] = [0; 8];
+    for (i, num_str) in numbers_str.iter().enumerate() {
+        image_id[i] = num_str.parse::<u32>().unwrap();
+    }
+
+    let receipt_up_result = fs::read_to_string(&receipt_data);
+    if receipt_up_result.is_err() {
+        warn!("Error reading receipt file");
+        return HttpResponse::BadRequest().json(VerificationResult { is_valid: false });
+    }
+    let receipt_up = receipt_up_result.unwrap();
+    let receipt_bytes_result = serde_json::from_str(&receipt_up);
+    if receipt_bytes_result.is_err() {
+        warn!("Error parsing receipt JSON");
+        return HttpResponse::BadRequest().json(VerificationResult { is_valid: false });
+    }
+    let receipt_bytes: Proof = receipt_bytes_result.unwrap();
+    let receipt_result = bincode::deserialize(&receipt_bytes.proof);
+    if receipt_result.is_err() {
+        warn!("Error deserializing receipt");
+        return HttpResponse::BadRequest().json(VerificationResult { is_valid: false });
+    }
+    let receipt: Receipt = receipt_result.unwrap();
     let verification_result = receipt.verify(image_id);
     match verification_result {
         Ok(_) => {
