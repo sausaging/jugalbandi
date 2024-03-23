@@ -1,18 +1,30 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::warn;
+use std::process::Command;
 
-use crate::models::{ProofDataMiden, ProofDataSP1, VerificationResult, Ping, ProodDataRisc0};
-use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
 use crate::errors::VerificationError;
+use crate::models::{Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, VerificationResult};
+use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
 
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Verifying proofs for the world!")
 }
 
-#[post("/ping")]
+#[get("/ping")]
 async fn ping() -> impl Responder {
-    HttpResponse::Ok().json(Ping { success: true })
+    // will instantiate a new port here on every ping call and return the port number
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg("WORKERS=1 PORT=7858 cargo run")
+        .output()
+        .expect("failed to execute process");
+    println!("{:?}", output);
+    let port = 7878;
+    HttpResponse::Ok().json(Ping {
+        success: true,
+        port,
+    })
 }
 
 fn handle_response(result: Result<VerificationResult, VerificationError>) -> HttpResponse {

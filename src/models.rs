@@ -33,4 +33,5 @@ pub struct Proof {
 #[derive(Serialize)]
 pub struct Ping {
     pub success: bool,
+    pub port: u16,
 }

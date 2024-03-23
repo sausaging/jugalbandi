@@ -1,19 +1,20 @@
-use actix_web::{App, HttpServer};
 use actix_web::middleware::Logger;
+use actix_web::{App, HttpServer};
 
+use crate::config::Config;
 use crate::logging::init_logger;
-use crate::routes::{hello, ping, verify_sp1, verify_miden, verify_risc0};
+use crate::routes::{hello, ping, verify_miden, verify_risc0, verify_sp1};
 
-mod logging;
+mod config;
 mod errors;
+mod logging;
 mod models;
 mod routes;
 mod services;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "debug");
-    std::env::set_var("RUST_BACKTRACE", "1");
+    let config = Config::init();
     init_logger();
     HttpServer::new(|| {
         App::new()
@@ -24,8 +25,8 @@ async fn main() -> std::io::Result<()> {
             .service(verify_risc0)
             .service(ping)
     })
-    .workers(10)
-    .bind(("127.0.0.1", 8080))?
+    .workers(config.workers)
+    .bind(("127.0.0.1", config.port))?
     .run()
     .await
 }

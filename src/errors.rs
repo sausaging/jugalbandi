@@ -32,8 +32,8 @@ impl From<bincode::Error> for VerificationError {
     }
 }
 
-impl From<(serde_json::Error, std::io::Error, )> for VerificationError {
-    fn from((json_err, io_err): (serde_json::Error, std::io::Error, )) -> Self {
+impl From<(serde_json::Error, std::io::Error)> for VerificationError {
+    fn from((json_err, io_err): (serde_json::Error, std::io::Error)) -> Self {
         VerificationError::JsonErrIOErr(json_err, io_err, String::new())
     }
 }
