@@ -1564,6 +1564,7 @@ dependencies = [
  "actix-web",
  "bincode",
  "env_logger",
+ "lazy_static",
  "log",
  "miden-wasm",
  "risc0-zkvm",
@@ -1571,6 +1572,7 @@ dependencies = [
  "serde_json",
  "sp1-core",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

@@ -14,6 +14,12 @@ pub enum VerificationError {
     InvalidImageID(String),
 }
 
+#[derive(Error, Debug)]
+pub enum SubmitionError {
+    #[error("Error while locking the hashmap")]
+    LockError(String),
+}
+
 impl From<std::io::Error> for VerificationError {
     fn from(err: std::io::Error) -> Self {
         VerificationError::IOError(err, String::new())
