@@ -38,7 +38,7 @@ pub async fn verify(data: ProofDataMiden) -> Result<VerificationResult, Verifica
     let is_valid = match verification_result {
         Ok(x) => x == 96,
         Err(err) => {
-            warn!("Verification failed : {err}");
+            warn!("Verification failed : {:?}", err);
             false
         }
     };
