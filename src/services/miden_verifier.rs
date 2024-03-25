@@ -4,13 +4,13 @@ use std::fs;
 
 use crate::config::handle_delete_files;
 use crate::errors::VerificationError;
-use crate::models::{Proof, ProofDataMiden, VerificationResult};
+use crate::models::{MidenProof, Proof, VerificationResult};
 
-pub async fn verify(data: ProofDataMiden) -> Result<VerificationResult, VerificationError> {
+pub async fn verify(data: &MidenProof) -> Result<VerificationResult, VerificationError> {
     info!("{:?}", data);
-    let code_frontend = data.code_front_end;
-    let inputs_frontend = data.inputs_front_end;
-    let outputs_frontend = data.outputs_front_end;
+    let code_frontend = &data.code_front_end;
+    let inputs_frontend = &data.inputs_front_end;
+    let outputs_frontend = &data.outputs_front_end;
     let proof_data = match fs::read_to_string(&data.proof_file_path) {
         Ok(x) => x,
         Err(err) => {
@@ -42,6 +42,6 @@ pub async fn verify(data: ProofDataMiden) -> Result<VerificationResult, Verifica
             false
         }
     };
-    handle_delete_files(&vec![data.proof_file_path]);
+    handle_delete_files(&vec![&data.proof_file_path]);
     return Ok(VerificationResult { is_valid });
 }

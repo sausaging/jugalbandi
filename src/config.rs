@@ -1,4 +1,4 @@
-use crate::storage::CURRENT_PORT;
+use log::info;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::env;
@@ -6,7 +6,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::models::{MidenProof, Risc0Proof, Sp1Proof, VerifyProof};
+use crate::errors::VerificationError;
+use crate::models::{
+    MidenProof, PostVerificationResult, Risc0Proof, Sp1Proof, VerificationResult, VerifyProof,
+};
+use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
 
 use log::warn;
 pub struct Config {
@@ -37,7 +41,7 @@ impl Config {
     }
 }
 
-pub fn handle_delete_files(files: &Vec<String>) {
+pub fn handle_delete_files(files: &Vec<&String>) {
     let config = Config::init();
     if config.delete_files {
         for file in files {
@@ -47,11 +51,24 @@ pub fn handle_delete_files(files: &Vec<String>) {
     }
 }
 
+pub fn handle_verification_result(
+    verification_result: Result<VerificationResult, VerificationError>,
+) -> bool {
+    match verification_result {
+        Ok(result) => result.is_valid,
+        Err(err) => {
+            warn!("Verification failed: {:?}", err);
+            false
+        }
+    }
+}
+
 pub async fn process_verification_queue(
     queue: Arc<Mutex<VecDeque<VerifyProof>>>,
     _sp1_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
     _risc0_hashmap: Arc<Mutex<HashMap<String, Risc0Proof>>>,
     _miden_hashmap: Arc<Mutex<HashMap<String, MidenProof>>>,
+    current_port: Arc<Mutex<u16>>,
 ) {
     loop {
         let mut queue = queue.lock().await;
@@ -62,39 +79,53 @@ pub async fn process_verification_queue(
         }
 
         let verification_proof = queue.pop_front().unwrap();
-
-        // implement later
+        info!("Processing verification proof: {:?}", verification_proof);
+        let is_valid;
         match verification_proof.proof_type {
-            1 => {}
-            2 => {}
-            3 => {}
-            _ => {}
-        }
-
-        let verification_successful = false;
-        if verification_successful {
-            // Send POST request to the other server on successful verification
-            let port = CURRENT_PORT.lock().await;
-            let url_str = format!("http://127.0.0.1:{}/submit-result", port.to_string());
-            let url = reqwest::Url::from_str(&url_str).expect("Failed to parse URL");
-            let client = reqwest::Client::new();
-            let mut map = HashMap::new();
-            map.insert("tx_id", verification_proof.tx_id);
-            map.insert("verification_status", "true".to_string());
-            let response = client
-                .post(url)
-                .json(&map)
-                .send()
-                .await
-                .expect("Failed to send POST request");
-
-            if response.status().is_success() {
-                println!("Verification proof sent successfully!");
-            } else {
-                println!("Failed to send verification proof: {}", response.status());
+            1 => {
+                let sp1_hashmap = _sp1_hashmap.lock().await;
+                let sp1_proof = sp1_hashmap.get(&verification_proof.tx_id).unwrap();
+                let verification_result = sp1_verifier::verify(sp1_proof).await;
+                is_valid = handle_verification_result(verification_result);
             }
+            2 => {
+                let miden_hashmap = _miden_hashmap.lock().await;
+                let miden_proof = miden_hashmap.get(&verification_proof.tx_id).unwrap();
+                let verification_result = miden_verifier::verify(miden_proof).await;
+                is_valid = handle_verification_result(verification_result);
+            }
+            3 => {
+                let risc0_hashmap = _risc0_hashmap.lock().await;
+                let risc0_proof = risc0_hashmap.get(&verification_proof.tx_id).unwrap();
+                let verification_result = risc0_verifier::verify(risc0_proof).await;
+                is_valid = handle_verification_result(verification_result);
+            }
+            _ => {
+                warn!("Invalid proof type");
+                is_valid = false;
+            }
+        }
+        // Send POST request to the other server on successful verification
+        let port = current_port.lock().await;
+        let url_str = format!("http://127.0.0.1:{}/submit-result", port.to_string());
+        info!("Sending verification proof to: {}", url_str);
+        let url = reqwest::Url::from_str(&url_str).expect("Failed to parse URL");
+        let client = reqwest::Client::new();
+        let map = PostVerificationResult {
+            tx_id: verification_proof.tx_id,
+            is_valid,
+        };
+        let response = client
+            .post(url)
+            .json(&map)
+            .send()
+            .await
+            .expect("Failed to send POST request");
+
+        if response.status().is_success() {
+            println!("Verification proof sent successfully!");
         } else {
-            println!("Verification failed for proof: {:?}", verification_proof);
+            println!("Failed to send verification proof: {}", response.status());
         }
     }
 }

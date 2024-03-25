@@ -2,7 +2,6 @@ use crate::models::{
     MidenProof, Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof, Sp1Proof,
     SubmitionResult, VerifyProof,
 };
-use crate::storage::{CURRENT_PORT, INSTANTIATED_PORTS, UNINSTANTIATED_PORTS};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::warn;
 use std::collections::{HashMap, VecDeque};
@@ -15,27 +14,28 @@ async fn hello() -> impl Responder {
 }
 
 #[get("/ping")]
-async fn ping() -> impl Responder {
+async fn ping(
+    current_port: web::Data<Arc<Mutex<u16>>>,
+    instantiated_ports: web::Data<Arc<Mutex<Vec<u16>>>>,
+    uninstantiated_ports: web::Data<Arc<Mutex<Vec<u16>>>>,
+) -> impl Responder {
     // will instantiate a new port here on every ping call and return the port number
-    let mut instantiated_ports = INSTANTIATED_PORTS.lock().await;
-    let mut uninstantiated_ports = UNINSTANTIATED_PORTS.lock().await;
-    let mut current_port = CURRENT_PORT.lock().await;
+    let mut instantiated_ports = instantiated_ports.lock().await;
+    let mut uninstantiated_ports = uninstantiated_ports.lock().await;
+    let mut current_port = current_port.lock().await;
     let instantiated_port = instantiated_ports.pop().unwrap();
     let uninstantiated_port = uninstantiated_ports.pop().unwrap();
     *current_port = uninstantiated_port;
     HttpResponse::Ok().json(Ping {
         success: true,
         instantiated_port,
-        uninstantiated_port,
+        uninstantiated_port: *current_port,
     })
 }
 
 #[post("/sp1-verify")]
 async fn verify_sp1(
-    _queue: web::Data<Arc<Mutex<VecDeque<VerifyProof>>>>,
     sp1_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
-    _risc0_hashmap: web::Data<Arc<Mutex<HashMap<String, Risc0Proof>>>>,
-    _miden_hashmap: web::Data<Arc<Mutex<HashMap<String, MidenProof>>>>,
     data: web::Json<ProofDataSP1>,
 ) -> impl Responder {
     let mut sp1_hashmap = sp1_hashmap.lock().await;
@@ -52,9 +52,6 @@ async fn verify_sp1(
 
 #[post("/miden-verify")]
 async fn verify_miden(
-    _queue: web::Data<Arc<Mutex<VecDeque<VerifyProof>>>>,
-    _sp1_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
-    _risc0_hashmap: web::Data<Arc<Mutex<HashMap<String, Risc0Proof>>>>,
     miden_hashmap: web::Data<Arc<Mutex<HashMap<String, MidenProof>>>>,
     data: web::Json<ProofDataMiden>,
 ) -> impl Responder {
@@ -74,10 +71,7 @@ async fn verify_miden(
 
 #[post("/risc0-verify")]
 async fn verify_risc0(
-    _queue: web::Data<Arc<Mutex<VecDeque<VerifyProof>>>>,
-    _sp1_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
     risc0_hashmap: web::Data<Arc<Mutex<HashMap<String, Risc0Proof>>>>,
-    _miden_hashmap: web::Data<Arc<Mutex<HashMap<String, MidenProof>>>>,
     data: web::Json<ProodDataRisc0>,
 ) -> impl Responder {
     let mut risc0_hashmap = risc0_hashmap.lock().await;

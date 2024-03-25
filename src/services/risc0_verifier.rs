@@ -6,12 +6,12 @@ use std::fs;
 
 use crate::config::handle_delete_files;
 use crate::errors::VerificationError;
-use crate::models::{ProodDataRisc0, Proof, VerificationResult};
+use crate::models::{Proof, Risc0Proof, VerificationResult};
 
-pub async fn verify(data: ProodDataRisc0) -> Result<VerificationResult, VerificationError> {
+pub async fn verify(data: &Risc0Proof) -> Result<VerificationResult, VerificationError> {
     info!("{:?}", data);
-    let receipt_data = data.proof_file_path.clone();
-    let image_id_str = data.risc_zero_image_id;
+    let receipt_data = &data.proof_file_path;
+    let image_id_str = &data.risc_zero_image_id;
     let numbers_str: Vec<&str> = image_id_str
         .trim_matches(|c| c == '[' || c == ']')
         .split(", ")
@@ -45,7 +45,7 @@ pub async fn verify(data: ProodDataRisc0) -> Result<VerificationResult, Verifica
 
     let verification_result = receipt.verify(image_id);
 
-    handle_delete_files(&vec![data.proof_file_path]);
+    handle_delete_files(&vec![&data.proof_file_path]);
     match verification_result {
         Ok(_) => Ok(VerificationResult { is_valid: true }),
         Err(err) => {

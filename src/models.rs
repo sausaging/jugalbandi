@@ -1,5 +1,3 @@
-use std::vec;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -9,6 +7,7 @@ pub struct ProofDataSP1 {
     pub elf_file_path: String,
 }
 
+#[derive(Deserialize, Debug)]
 pub struct Sp1Proof {
     pub proof_file_path: String,
     pub elf_file_path: String,
@@ -23,13 +22,13 @@ pub struct ProofDataMiden {
     pub proof_file_path: String,
 }
 
+#[derive(Deserialize, Debug)]
 pub struct MidenProof {
     pub code_front_end: String,
     pub inputs_front_end: String,
     pub outputs_front_end: String,
     pub proof_file_path: String,
 }
-
 
 #[derive(Deserialize, Debug)]
 pub struct ProodDataRisc0 {
@@ -38,6 +37,7 @@ pub struct ProodDataRisc0 {
     pub risc_zero_image_id: String,
 }
 
+#[derive(Deserialize, Debug)]
 pub struct Risc0Proof {
     pub proof_file_path: String,
     pub risc_zero_image_id: String,
@@ -49,17 +49,12 @@ pub struct VerifyProof {
     pub proof_type: u8,
 }
 
-#[derive(Serialize, Debug)]
-pub enum ProofType {
-    SP1,
-    MIDEN,
-    RISC0,
-}
-
 #[derive(Serialize)]
 pub struct SubmitionResult {
     pub is_submitted: bool,
 }
+
+#[derive(Serialize, Debug)]
 
 pub struct VerificationResult {
     pub is_valid: bool,
@@ -75,4 +70,10 @@ pub struct Ping {
     pub success: bool,
     pub instantiated_port: u16,
     pub uninstantiated_port: u16,
+}
+
+#[derive(Serialize, Debug)]
+pub struct PostVerificationResult {
+    pub tx_id: String,
+    pub is_valid: bool,
 }
