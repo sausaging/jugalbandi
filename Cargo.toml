@@ -18,4 +18,4 @@ risc0-zkvm = "0.20.1"
 thiserror = "1.0.57"
 lazy_static = "1.4.0"
 tokio = "1.36.0"
-
+reqwest = { version = "0.12.1", features = ["blocking", "json"] }
