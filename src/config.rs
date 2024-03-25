@@ -1,17 +1,13 @@
-use std::env;
+use crate::storage::CURRENT_PORT;
+use crate::storage::SP1_HASHMAP;
 use reqwest::Client;
 use serde_json::json;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::env;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::Mutex;
-use crate::storage::{
-    CURRENT_PORT, INSTANTIATED_PORTS, MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP,
-    UNINSTANTIATED_PORTS, VERIFY_QUEUE,
-};
-
-use std::error::Error;
+use tokio::sync::Mutex;
 
 use crate::models::{MidenProof, Risc0Proof, Sp1Proof, VerifyProof};
 
@@ -54,9 +50,15 @@ pub fn handle_delete_files(files: &Vec<String>) {
     }
 }
 
-pub async fn process_verification_queue(queue: &Arc<Mutex<VecDeque<VerifyProof>>>) {
+pub async fn process_verification_queue(
+    queue: Arc<Mutex<VecDeque<VerifyProof>>>,
+    _sp1_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
+    _risc0_hashmap: Arc<Mutex<HashMap<String, Risc0Proof>>>,
+    _miden_hashmap: Arc<Mutex<HashMap<String, MidenProof>>>,
+) {
     loop {
-        let mut queue = queue.lock().unwrap();
+        let mut queue = queue.lock().await;
+
         if queue.is_empty() {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             continue;
@@ -75,7 +77,7 @@ pub async fn process_verification_queue(queue: &Arc<Mutex<VecDeque<VerifyProof>>
         let verification_successful = false;
         if verification_successful {
             // Send POST request to the other server on successful verification
-            let port = CURRENT_PORT.lock().unwrap();
+            let port = CURRENT_PORT.lock().await;
             let url_str = format!("http://127.0.0.1:{}/submit-result", port.to_string());
             let url = reqwest::Url::from_str(&url_str).expect("Failed to parse URL");
             let client = reqwest::Client::new();
@@ -99,4 +101,3 @@ pub async fn process_verification_queue(queue: &Arc<Mutex<VecDeque<VerifyProof>>
         }
     }
 }
-
