@@ -1,11 +1,7 @@
-use actix_web::http::Error;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::warn;
 use std::process::Command;
 
-
-
-use crate::errors::{SubmitionError, VerificationError};
 use crate::models::{
     MidenProof, Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof, Sp1Proof,
     SubmitionResult, VerifyProof,
@@ -30,16 +26,6 @@ async fn ping() -> impl Responder {
     let instantiated_port = instantiated_ports.pop().unwrap();
     let uninstantiated_port = uninstantiated_ports.pop().unwrap();
     *current_port = uninstantiated_port;
-    let output = Command::new("bash")
-        .arg("-c")
-        .arg(format!(
-            "WORKERS=1 PORT={} cargo run",
-            instantiated_port.to_string()
-        ))
-        .output()
-        .expect("failed to execute process");
-    println!("{:?}", output);
-    let instantiated_port = 7878;
     HttpResponse::Ok().json(Ping {
         success: true,
         instantiated_port,

@@ -21,9 +21,7 @@ async fn main() -> std::io::Result<()> {
     let config = Config::init();
     init_logger();
     let queue = storage::VERIFY_QUEUE.clone();
-    task::spawn(async move {
-        process_verification_queue(&queue).await;  // Call with reference
-      });
+    task::spawn(process_verification_queue(&queue));
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
