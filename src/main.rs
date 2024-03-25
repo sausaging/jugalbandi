@@ -2,9 +2,11 @@ use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer};
 use tokio::task;
 
-use crate::config::Config;
+use crate::config::{Config, process_verification_queue};
 use crate::logging::init_logger;
-use crate::routes::{hello, ping, verify_miden, verify_risc0, verify_sp1, process_verification_queue};
+use crate::routes::{
+    hello, ping, verify_miden, verify_risc0, verify_sp1,
+};
 
 mod config;
 mod errors;
@@ -18,7 +20,10 @@ mod storage;
 async fn main() -> std::io::Result<()> {
     let config = Config::init();
     init_logger();
-    task::spawn(process_verification_queue());
+    let queue = storage::VERIFY_QUEUE.clone();
+    task::spawn(async move {
+        process_verification_queue(&queue).await;  // Call with reference
+      });
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())

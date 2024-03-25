@@ -1,4 +1,19 @@
 use std::env;
+use reqwest::Client;
+use serde_json::json;
+use std::collections::HashMap;
+use std::collections::VecDeque;
+use std::str::FromStr;
+use std::sync::Arc;
+use std::sync::Mutex;
+use crate::storage::{
+    CURRENT_PORT, INSTANTIATED_PORTS, MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP,
+    UNINSTANTIATED_PORTS, VERIFY_QUEUE,
+};
+
+use std::error::Error;
+
+use crate::models::{MidenProof, Risc0Proof, Sp1Proof, VerifyProof};
 
 use log::warn;
 pub struct Config {
@@ -38,3 +53,50 @@ pub fn handle_delete_files(files: &Vec<String>) {
         }
     }
 }
+
+pub async fn process_verification_queue(queue: &Arc<Mutex<VecDeque<VerifyProof>>>) {
+    loop {
+        let mut queue = queue.lock().unwrap();
+        if queue.is_empty() {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            continue;
+        }
+
+        let verification_proof = queue.pop_front().unwrap();
+
+        // implement later
+        match verification_proof.proof_type {
+            1 => {}
+            2 => {}
+            3 => {}
+            _ => {}
+        }
+
+        let verification_successful = false;
+        if verification_successful {
+            // Send POST request to the other server on successful verification
+            let port = CURRENT_PORT.lock().unwrap();
+            let url_str = format!("http://127.0.0.1:{}/submit-result", port.to_string());
+            let url = reqwest::Url::from_str(&url_str).expect("Failed to parse URL");
+            let client = reqwest::Client::new();
+            let mut map = HashMap::new();
+            map.insert("tx_id", verification_proof.tx_id);
+            map.insert("verification_status", "true".to_string());
+            let response = client
+                .post(url)
+                .json(&map)
+                .send()
+                .await
+                .expect("Failed to send POST request");
+
+            if response.status().is_success() {
+                println!("Verification proof sent successfully!");
+            } else {
+                println!("Failed to send verification proof: {}", response.status());
+            }
+        } else {
+            println!("Verification failed for proof: {:?}", verification_proof);
+        }
+    }
+}
+

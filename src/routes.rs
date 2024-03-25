@@ -1,10 +1,9 @@
+use actix_web::http::Error;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::warn;
 use std::process::Command;
-use std::str::FromStr;
-use reqwest::Client;
-use std::collections::HashMap;
-use serde_json::json;
+
+
 
 use crate::errors::{SubmitionError, VerificationError};
 use crate::models::{
@@ -147,50 +146,4 @@ async fn verify(data: web::Json<VerifyProof>) -> impl Responder {
         }
     }
     HttpResponse::Ok().json(SubmitionResult { is_submitted: true })
-}
-
-pub async fn process_verification_queue() {
-    loop {
-        let mut queue = VERIFY_QUEUE.lock().unwrap();
-
-        if queue.is_empty() {
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-            continue;
-        }
-
-        let verification_proof = queue.pop_front().unwrap();
-
-        // implement later
-        match verification_proof.proof_type {
-            1 => {}
-            2 => {}
-            3 => {}
-            _ => {}
-        }
-
-        let verification_successful = false;
-        if verification_successful {
-            // Send POST request to the other server on successful verification
-            let port = CURRENT_PORT.lock().unwrap();
-            let url_str = format!("http://127.0.0.1:{}/submit-result", port.to_string());
-            let url = reqwest::Url::from_str(&url_str).expect("Failed to parse URL");
-            let client = reqwest::Client::new();
-            let mut map = HashMap::new();
-            map.insert("tx_id", verification_proof.tx_id);
-            map.insert("verification_status", "true".to_string());
-            let response = client.post(url)
-                .json(&map)
-                .send()
-                .await
-                .expect("Failed to send POST request");
-
-            if response.status().is_success() {
-                println!("Verification proof sent successfully!");
-            } else {
-                println!("Failed to send verification proof: {}", response.status());
-            }
-        } else {
-            println!("Verification failed for proof: {:?}", verification_proof);
-        }
-    }
 }
