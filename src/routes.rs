@@ -2,11 +2,7 @@ use crate::models::{
     MidenProof, Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof, Sp1Proof,
     SubmitionResult, VerifyProof,
 };
-use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
-use crate::storage::{
-    CURRENT_PORT, INSTANTIATED_PORTS, MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP,
-    UNINSTANTIATED_PORTS, VERIFY_QUEUE,
-};
+use crate::storage::{CURRENT_PORT, INSTANTIATED_PORTS, UNINSTANTIATED_PORTS};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::warn;
 use std::collections::{HashMap, VecDeque};

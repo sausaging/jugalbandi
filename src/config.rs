@@ -1,7 +1,4 @@
 use crate::storage::CURRENT_PORT;
-use crate::storage::SP1_HASHMAP;
-use reqwest::Client;
-use serde_json::json;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::env;
