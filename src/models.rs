@@ -77,3 +77,7 @@ pub struct PostVerificationResult {
     pub tx_id: String,
     pub is_valid: bool,
 }
+pub struct Ports {
+    pub instantiated_ports: Vec<u16>,
+    pub uninstantiated_ports: Vec<u16>,
+}

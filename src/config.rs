@@ -17,6 +17,7 @@ pub struct Config {
     pub port: u16,
     pub workers: usize,
     pub delete_files: bool,
+    pub u_port: u16,
 }
 
 impl Config {
@@ -33,10 +34,15 @@ impl Config {
             .unwrap_or_else(|_| "false".to_string())
             .parse()
             .expect("DELETE_FILES must be a boolean");
+        let u_port: u16 = env::var("UPORT")
+            .unwrap_or_else(|_| "0".to_string())
+            .parse()
+            .expect("UPort must be a number");
         Config {
             port,
             workers,
             delete_files,
+            u_port,
         }
     }
 }
@@ -68,7 +74,6 @@ pub async fn process_verification_queue(
     _sp1_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
     _risc0_hashmap: Arc<Mutex<HashMap<String, Risc0Proof>>>,
     _miden_hashmap: Arc<Mutex<HashMap<String, MidenProof>>>,
-    current_port: Arc<Mutex<u16>>,
 ) {
     loop {
         let mut queue = queue.lock().await;
@@ -106,7 +111,8 @@ pub async fn process_verification_queue(
             }
         }
         // Send POST request to the other server on successful verification
-        let port = current_port.lock().await;
+        let config = Config::init();
+        let port = config.u_port;
         let url_str = format!("http://127.0.0.1:{}/submit-result", port.to_string());
         info!("Sending verification proof to: {}", url_str);
         let url = reqwest::Url::from_str(&url_str).expect("Failed to parse URL");

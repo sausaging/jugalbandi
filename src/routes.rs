@@ -1,9 +1,9 @@
 use crate::models::{
     MidenProof, Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof, Sp1Proof,
-    SubmitionResult, VerifyProof,
+    SubmitionResult, VerifyProof, Ports
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
-use log::warn;
+use log::{info, warn};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -14,22 +14,26 @@ async fn hello() -> impl Responder {
 }
 
 #[get("/ping")]
-async fn ping(
-    current_port: web::Data<Arc<Mutex<u16>>>,
-    instantiated_ports: web::Data<Arc<Mutex<Vec<u16>>>>,
-    uninstantiated_ports: web::Data<Arc<Mutex<Vec<u16>>>>,
-) -> impl Responder {
+async fn ping(port_index: web::Data<Arc<Mutex<usize>>>,
+            ports: web::Data<Ports>,) -> impl Responder {
+    info!("Pinging the server");
     // will instantiate a new port here on every ping call and return the port number
-    let mut instantiated_ports = instantiated_ports.lock().await;
-    let mut uninstantiated_ports = uninstantiated_ports.lock().await;
-    let mut current_port = current_port.lock().await;
-    let instantiated_port = instantiated_ports.pop().unwrap();
-    let uninstantiated_port = uninstantiated_ports.pop().unwrap();
-    *current_port = uninstantiated_port;
+    let mut port_index = port_index.lock().await;
+    let instantiated_port = ports.instantiated_ports[*port_index];
+    let uninstantiated_port = ports.uninstantiated_ports[*port_index];
+    *port_index += 1;
+    if (*port_index) >= ports.instantiated_ports.len() {
+        *port_index = 0;
+        return HttpResponse::Ok().json(Ping {
+            success: false,
+            instantiated_port,
+            uninstantiated_port,
+        })
+    }
     HttpResponse::Ok().json(Ping {
         success: true,
         instantiated_port,
-        uninstantiated_port: *current_port,
+        uninstantiated_port,
     })
 }
 

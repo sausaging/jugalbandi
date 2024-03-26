@@ -17,5 +17,5 @@ lazy_static! {
         Arc::new(Mutex::new(Vec::from(vec![8081, 8082, 8083, 8084, 8085])));
     pub static ref UNINSTANTIATED_PORTS: Arc<Mutex<Vec<u16>>> =
         Arc::new(Mutex::new(Vec::from(vec![8086, 8087, 8088, 8089, 8090])));
-    pub static ref CURRENT_PORT: Arc<Mutex<u16>> = Arc::new(Mutex::new(0));
+    pub static ref PORT_INDEX: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 }
