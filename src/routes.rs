@@ -1,6 +1,6 @@
 use crate::models::{
-    MidenProof, Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof, Sp1Proof,
-    SubmitionResult, VerifyProof, Ports
+    MidenProof, Ping, PingSingle, Ports, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof,
+    Sp1Proof, SubmitionResult, VerifyProof,
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::{info, warn};
@@ -14,27 +14,31 @@ async fn hello() -> impl Responder {
 }
 
 #[get("/ping")]
-async fn ping(port_index: web::Data<Arc<Mutex<usize>>>,
-            ports: web::Data<Ports>,) -> impl Responder {
+async fn ping(port_index: web::Data<Arc<Mutex<usize>>>, ports: web::Data<Ports>) -> impl Responder {
     info!("Pinging the server");
     // will instantiate a new port here on every ping call and return the port number
     let mut port_index = port_index.lock().await;
-    let instantiated_port = ports.instantiated_ports[*port_index];
-    let uninstantiated_port = ports.uninstantiated_ports[*port_index];
-    *port_index += 1;
     if (*port_index) >= ports.instantiated_ports.len() {
         *port_index = 0;
         return HttpResponse::Ok().json(Ping {
             success: false,
-            instantiated_port,
-            uninstantiated_port,
-        })
+            rust_port: "No more ports".to_string(),
+            uinit_port: "No more ports".to_string(),
+        });
     }
+    let instantiated_port = ports.instantiated_ports[*port_index];
+    let uninstantiated_port = ports.uninstantiated_ports[*port_index];
+    *port_index += 1;
     HttpResponse::Ok().json(Ping {
         success: true,
-        instantiated_port,
-        uninstantiated_port,
+        rust_port: instantiated_port.to_string(),
+        uinit_port: uninstantiated_port.to_string(),
     })
+}
+
+#[get("/ping-single")]
+async fn ping_single() -> impl Responder {
+    HttpResponse::Ok().json(PingSingle { success: true })
 }
 
 #[post("/sp1-verify")]
@@ -100,7 +104,7 @@ async fn verify(
 ) -> impl Responder {
     let proof_data = data.into_inner();
     let mut verify_queue = queue.lock().await;
-    match proof_data.proof_type {
+    match proof_data.verify_type {
         1 => {
             let sp1_hashmap = sp1_hashmap.lock().await;
             match sp1_hashmap.get(&proof_data.tx_id) {

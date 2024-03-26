@@ -27,7 +27,7 @@ impl Config {
             .parse()
             .expect("PORT must be a number");
         let workers = env::var("WORKERS")
-            .unwrap_or_else(|_| "10".to_string())
+            .unwrap_or_else(|_| "1".to_string())
             .parse()
             .expect("WORKERS must be a number");
         let delete_files = env::var("DELETE_FILES")
@@ -61,9 +61,12 @@ pub fn handle_verification_result(
     verification_result: Result<VerificationResult, VerificationError>,
 ) -> bool {
     match verification_result {
-        Ok(result) => result.is_valid,
+        Ok(result) => {
+            info!("Proof Verification Successfull {:?}", result);
+            result.is_valid
+        }
         Err(err) => {
-            warn!("Verification failed: {:?}", err);
+            warn!("Verification Error: {:?}", err);
             false
         }
     }
@@ -86,7 +89,7 @@ pub async fn process_verification_queue(
         let verification_proof = queue.pop_front().unwrap();
         info!("Processing verification proof: {:?}", verification_proof);
         let is_valid;
-        match verification_proof.proof_type {
+        match verification_proof.verify_type {
             1 => {
                 let sp1_hashmap = _sp1_hashmap.lock().await;
                 let sp1_proof = sp1_hashmap.get(&verification_proof.tx_id).unwrap();
@@ -127,11 +130,11 @@ pub async fn process_verification_queue(
             .send()
             .await
             .expect("Failed to send POST request");
-
+        info!("Response: {:?}", response);
         if response.status().is_success() {
-            println!("Verification proof sent successfully!");
+            info!("Verification proof sent successfully!");
         } else {
-            println!("Failed to send verification proof: {}", response.status());
+            warn!("Failed to send verification proof: {}", response.status());
         }
     }
 }

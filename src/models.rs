@@ -46,7 +46,7 @@ pub struct Risc0Proof {
 #[derive(Deserialize, Debug)]
 pub struct VerifyProof {
     pub tx_id: String,
-    pub proof_type: u8,
+    pub verify_type: u8,
 }
 
 #[derive(Serialize)]
@@ -68,8 +68,8 @@ pub struct Proof {
 #[derive(Serialize)]
 pub struct Ping {
     pub success: bool,
-    pub instantiated_port: u16,
-    pub uninstantiated_port: u16,
+    pub rust_port: String,
+    pub uinit_port: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -80,4 +80,9 @@ pub struct PostVerificationResult {
 pub struct Ports {
     pub instantiated_ports: Vec<u16>,
     pub uninstantiated_ports: Vec<u16>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct PingSingle {
+    pub success: bool,
 }
