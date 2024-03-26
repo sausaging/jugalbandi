@@ -46,7 +46,7 @@ pub struct Risc0Proof {
 #[derive(Deserialize, Debug)]
 pub struct VerifyProof {
     pub tx_id: String,
-    pub proof_type: u8,
+    pub verify_type: u8,
 }
 
 #[derive(Serialize)]

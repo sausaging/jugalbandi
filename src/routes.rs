@@ -101,7 +101,7 @@ async fn verify(
 ) -> impl Responder {
     let proof_data = data.into_inner();
     let mut verify_queue = queue.lock().await;
-    match proof_data.proof_type {
+    match proof_data.verify_type {
         1 => {
             let sp1_hashmap = sp1_hashmap.lock().await;
             match sp1_hashmap.get(&proof_data.tx_id) {

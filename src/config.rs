@@ -81,7 +81,7 @@ pub async fn process_verification_queue(
         let verification_proof = queue.pop_front().unwrap();
         info!("Processing verification proof: {:?}", verification_proof);
         let is_valid;
-        match verification_proof.proof_type {
+        match verification_proof.verify_type {
             1 => {
                 let sp1_hashmap = _sp1_hashmap.lock().await;
                 let sp1_proof = sp1_hashmap.get(&verification_proof.tx_id).unwrap();
