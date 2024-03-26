@@ -68,7 +68,7 @@ pub async fn process_verification_queue(
     _sp1_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
     _risc0_hashmap: Arc<Mutex<HashMap<String, Risc0Proof>>>,
     _miden_hashmap: Arc<Mutex<HashMap<String, MidenProof>>>,
-    current_port: Arc<Mutex<u16>>,
+    current_port: Arc<Mutex<u32>>,
 ) {
     loop {
         let mut queue = queue.lock().await;

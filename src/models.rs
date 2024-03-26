@@ -67,8 +67,8 @@ pub struct Proof {
 #[derive(Serialize)]
 pub struct Ping {
     pub success: bool,
-    pub instantiated_port: u16,
-    pub uninstantiated_port: u16,
+    pub rust_port: String,
+    pub uinit_port: String,
 }
 
 #[derive(Serialize, Debug)]

@@ -15,9 +15,9 @@ async fn hello() -> impl Responder {
 
 #[get("/ping")]
 async fn ping(
-    current_port: web::Data<Arc<Mutex<u16>>>,
+    current_port: web::Data<Arc<Mutex<u32>>>,
     instantiated_ports: web::Data<Arc<Mutex<Vec<u16>>>>,
-    uninstantiated_ports: web::Data<Arc<Mutex<Vec<u16>>>>,
+    uninstantiated_ports: web::Data<Arc<Mutex<Vec<u32>>>>,
 ) -> impl Responder {
     // will instantiate a new port here on every ping call and return the port number
     let mut instantiated_ports = instantiated_ports.lock().await;
@@ -28,8 +28,8 @@ async fn ping(
     *current_port = uninstantiated_port;
     HttpResponse::Ok().json(Ping {
         success: true,
-        instantiated_port,
-        uninstantiated_port: *current_port,
+        rust_port: instantiated_port.to_string(),
+        uinit_port: current_port.to_string(),
     })
 }
 
