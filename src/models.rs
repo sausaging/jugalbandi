@@ -55,7 +55,6 @@ pub struct SubmitionResult {
 }
 
 #[derive(Serialize, Debug)]
-
 pub struct VerificationResult {
     pub is_valid: bool,
 }
@@ -70,6 +69,11 @@ pub struct Ping {
     pub success: bool,
     pub instantiated_port: u16,
     pub uninstantiated_port: u16,
+}
+
+#[derive(Serialize, Debug)]
+pub struct PingSingle {
+    pub success: bool,
 }
 
 #[derive(Serialize, Debug)]

@@ -1,9 +1,10 @@
-use log::info;
-use std::collections::HashMap;
-use std::collections::VecDeque;
-use std::env;
-use std::str::FromStr;
-use std::sync::Arc;
+use log::{info, warn};
+use std::{
+    collections::{HashMap, VecDeque},
+    env,
+    str::FromStr,
+    sync::Arc,
+};
 use tokio::sync::Mutex;
 
 use crate::errors::VerificationError;
@@ -12,7 +13,6 @@ use crate::models::{
 };
 use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
 
-use log::warn;
 pub struct Config {
     pub port: u16,
     pub workers: usize,
@@ -26,7 +26,7 @@ impl Config {
             .parse()
             .expect("PORT must be a number");
         let workers = env::var("WORKERS")
-            .unwrap_or_else(|_| "10".to_string())
+            .unwrap_or_else(|_| "1".to_string())
             .parse()
             .expect("WORKERS must be a number");
         let delete_files = env::var("DELETE_FILES")

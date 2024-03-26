@@ -1,12 +1,10 @@
-use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer};
-use storage::CURRENT_PORT;
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use tokio::task;
 
 use crate::config::{process_verification_queue, Config};
 use crate::logging::init_logger;
-use crate::routes::{hello, ping, verify, verify_miden, verify_risc0, verify_sp1};
-use crate::storage::{MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP, VERIFY_QUEUE};
+use crate::routes::{hello, ping, ping_single, verify, verify_miden, verify_risc0, verify_sp1};
+use crate::storage::{CURRENT_PORT, MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP, VERIFY_QUEUE};
 
 mod config;
 mod errors;
@@ -50,6 +48,7 @@ async fn main() -> std::io::Result<()> {
             .service(verify_risc0)
             .service(verify)
             .service(ping)
+            .service(ping_single)
     })
     .workers(config.workers)
     .bind(("127.0.0.1", config.port))?

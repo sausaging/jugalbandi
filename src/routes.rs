@@ -1,6 +1,6 @@
 use crate::models::{
-    MidenProof, Ping, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof, Sp1Proof,
-    SubmitionResult, VerifyProof,
+    MidenProof, Ping, PingSingle, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof,
+    Sp1Proof, SubmitionResult, VerifyProof,
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::warn;
@@ -31,6 +31,11 @@ async fn ping(
         instantiated_port,
         uninstantiated_port: *current_port,
     })
+}
+
+#[get("/ping-single")]
+async fn ping_single() -> impl Responder {
+    HttpResponse::Ok().json(PingSingle { success: true })
 }
 
 #[post("/sp1-verify")]
