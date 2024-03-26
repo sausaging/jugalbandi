@@ -2,15 +2,13 @@ use bincode::deserialize;
 use log::{info, warn};
 use risc0_zkvm::Receipt;
 use serde_json::from_str;
-use std::fs;
 
-use crate::config::handle_delete_files;
+use crate::config::{handle_delete_files, handle_proof_bytes};
 use crate::errors::VerificationError;
 use crate::models::{Proof, Risc0Proof, VerificationResult};
 
 pub async fn verify(data: &Risc0Proof) -> Result<VerificationResult, VerificationError> {
     info!("{:?}", data);
-    let receipt_data = &data.proof_file_path;
     let image_id_str = &data.risc_zero_image_id;
     let numbers_str: Vec<&str> = image_id_str
         .trim_matches(|c| c == '[' || c == ']')
@@ -32,10 +30,13 @@ pub async fn verify(data: &Risc0Proof) -> Result<VerificationResult, Verificatio
             }
         }
     }
-    let receipt_up = fs::read_to_string(receipt_data)
-        .map_err(|err| VerificationError::IOError(err, "Error reading receipt file".to_string()))?;
+    let proof = handle_proof_bytes(&data.proof_file_path)
+        .await
+        .map_err(|err| {
+            return err;
+        })?;
 
-    let receipt_bytes: Proof = from_str(&receipt_up).map_err(|err| {
+    let receipt_bytes: Proof = from_str(&proof).map_err(|err| {
         VerificationError::JSONError(err, "Error parsing receipt JSON".to_string())
     })?;
 

@@ -1,12 +1,13 @@
-use crate::models::{
-    MidenProof, Ping, PingSingle, Ports, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof,
-    Sp1Proof, SubmitionResult, VerifyProof,
-};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::{info, warn};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+use crate::models::{
+    MidenProof, Ping, PingSingle, Ports, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof,
+    Sp1Proof, SubmitionResult, VerifyProof,
+};
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -29,6 +30,10 @@ async fn ping(port_index: web::Data<Arc<Mutex<usize>>>, ports: web::Data<Ports>)
     let instantiated_port = ports.instantiated_ports[*port_index];
     let uninstantiated_port = ports.uninstantiated_ports[*port_index];
     *port_index += 1;
+    info!(
+        "Instantiated port: {}, Uninstantiated port: {}",
+        instantiated_port, uninstantiated_port
+    );
     HttpResponse::Ok().json(Ping {
         success: true,
         rust_port: instantiated_port.to_string(),

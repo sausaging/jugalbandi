@@ -1,8 +1,7 @@
 use log::{info, warn};
 use miden_wasm::verify_program;
-use std::fs;
 
-use crate::config::handle_delete_files;
+use crate::config::{handle_delete_files, handle_proof_bytes};
 use crate::errors::VerificationError;
 use crate::models::{MidenProof, Proof, VerificationResult};
 
@@ -11,16 +10,12 @@ pub async fn verify(data: &MidenProof) -> Result<VerificationResult, Verificatio
     let code_frontend = &data.code_front_end;
     let inputs_frontend = &data.inputs_front_end;
     let outputs_frontend = &data.outputs_front_end;
-    let proof_data = match fs::read_to_string(&data.proof_file_path) {
-        Ok(x) => x,
-        Err(err) => {
-            return Err(VerificationError::IOError(
-                err,
-                "Error reading proof file".to_string(),
-            ))
-        }
-    };
-    let parsed_data: Proof = match serde_json::from_str(&proof_data) {
+    let proof = handle_proof_bytes(&data.proof_file_path)
+        .await
+        .map_err(|err| {
+            return err;
+        })?;
+    let parsed_data: Proof = match serde_json::from_str(&proof) {
         Ok(x) => x,
         Err(err) => {
             return Err(VerificationError::JSONError(

@@ -1,7 +1,8 @@
-use log::info;
-use std::collections::HashMap;
-use std::collections::VecDeque;
+use log::{info, warn};
+use std::collections::{HashMap, VecDeque};
 use std::env;
+use std::fs;
+use std::io::Read;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -12,7 +13,6 @@ use crate::models::{
 };
 use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
 
-use log::warn;
 pub struct Config {
     pub port: u16,
     pub workers: usize,
@@ -137,4 +137,22 @@ pub async fn process_verification_queue(
             warn!("Failed to send verification proof: {}", response.status());
         }
     }
+}
+
+pub async fn handle_proof_bytes(proof_file_path: &str) -> Result<String, VerificationError> {
+    let mut file = fs::File::open(&proof_file_path)
+        .map_err(|err| VerificationError::IOError(err, "Error opening receipt file".to_string()))?;
+
+    let mut buffer: Vec<u8> = vec![0; 32];
+
+    file.read_exact(&mut buffer).map_err(|err| {
+        VerificationError::IOError(err, "Error reading first 32 bytes".to_string())
+    })?;
+
+    let mut remaining_content = String::new();
+    file.read_to_string(&mut remaining_content).map_err(|err| {
+        VerificationError::IOError(err, "Error reading remaining content".to_string())
+    })?;
+
+    Ok(remaining_content)
 }
