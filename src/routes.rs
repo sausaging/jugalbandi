@@ -73,7 +73,7 @@ async fn verify_miden(
     miden_hashmap.insert(
         proof_data.tx_id.clone(),
         MidenProof {
-            code_front_end: proof_data.code_front_end.clone(),
+            program_hash: proof_data.program_hash.clone(),
             inputs_front_end: proof_data.inputs_front_end.clone(),
             outputs_front_end: proof_data.outputs_front_end.clone(),
             proof_file_path: proof_data.proof_file_path.clone(),

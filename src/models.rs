@@ -16,7 +16,7 @@ pub struct Sp1Proof {
 #[derive(Deserialize, Debug)]
 pub struct ProofDataMiden {
     pub tx_id: String,
-    pub code_front_end: String,
+    pub program_hash: String,
     pub inputs_front_end: String,
     pub outputs_front_end: String,
     pub proof_file_path: String,
@@ -24,7 +24,7 @@ pub struct ProofDataMiden {
 
 #[derive(Deserialize, Debug)]
 pub struct MidenProof {
-    pub code_front_end: String,
+    pub program_hash: String,
     pub inputs_front_end: String,
     pub outputs_front_end: String,
     pub proof_file_path: String,

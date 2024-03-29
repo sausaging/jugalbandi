@@ -1,15 +1,18 @@
 use log::{info, warn};
-use miden_wasm::verify_program;
+use miden::{Digest, ExecutionProof, Kernel, ProgramInfo, StackInputs, StackOutputs};
 
+use super::helpers::{string_to_u64_vec, deserialize_stack_outputs};
 use crate::config::{handle_delete_files, handle_proof_bytes};
 use crate::errors::VerificationError;
 use crate::models::{MidenProof, Proof, VerificationResult};
 
 pub async fn verify(data: &MidenProof) -> Result<VerificationResult, VerificationError> {
     info!("{:?}", data);
-    let code_frontend = &data.code_front_end;
-    let inputs_frontend = &data.inputs_front_end;
-    let outputs_frontend = &data.outputs_front_end;
+    let program_hash = Digest::try_from(data.program_hash.clone()).unwrap();
+    let program_info = ProgramInfo::new(program_hash, Kernel::default());
+    let inputs_u64 = string_to_u64_vec(&data.inputs_front_end).unwrap();
+    let stack_inputs = StackInputs::try_from_values(inputs_u64).unwrap();
+    let stack_outputs = deserialize_stack_outputs(&data.outputs_front_end).unwrap();
     let proof = handle_proof_bytes(&data.proof_file_path)
         .await
         .map_err(|err| {
@@ -24,11 +27,13 @@ pub async fn verify(data: &MidenProof) -> Result<VerificationResult, Verificatio
             ))
         }
     };
-    let verification_result = verify_program(
-        &code_frontend,
-        &inputs_frontend,
-        &outputs_frontend,
-        parsed_data.proof,
+    let proof = ExecutionProof::from_bytes(&parsed_data.proof)
+    .unwrap();
+    let verification_result = miden::verify(
+        program_info,
+        stack_inputs,
+        stack_outputs,
+        proof,
     );
     let is_valid = match verification_result {
         Ok(x) => x == 96,
