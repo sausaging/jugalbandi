@@ -3,7 +3,7 @@ use serde_json::from_str;
 use sp1_core::{SP1ProofWithIO, SP1Verifier};
 use std::fs;
 
-use crate::config::{handle_delete_files, handle_proof_bytes};
+use super::helpers::{handle_delete_files, handle_proof_bytes};
 use crate::errors::VerificationError;
 use crate::models::{Sp1Proof, VerificationResult};
 

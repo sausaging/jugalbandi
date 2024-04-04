@@ -3,7 +3,7 @@ use log::{info, warn};
 use risc0_zkvm::Receipt;
 use serde_json::from_str;
 
-use crate::config::{handle_delete_files, handle_proof_bytes};
+use super::helpers::{handle_delete_files, handle_proof_bytes};
 use crate::errors::VerificationError;
 use crate::models::{Proof, Risc0Proof, VerificationResult};
 

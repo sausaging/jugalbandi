@@ -74,8 +74,8 @@ async fn verify_miden(
         proof_data.tx_id.clone(),
         MidenProof {
             program_hash: proof_data.program_hash.clone(),
-            inputs_front_end: proof_data.inputs_front_end.clone(),
-            outputs_front_end: proof_data.outputs_front_end.clone(),
+            inputs_stack: proof_data.inputs_stack.clone(),
+            outputs_stack: proof_data.outputs_stack.clone(),
             proof_file_path: proof_data.proof_file_path.clone(),
         },
     );

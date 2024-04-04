@@ -12,6 +12,10 @@ pub enum VerificationError {
     JsonErrIOErr(serde_json::Error, std::io::Error, String),
     #[error("Invalid  Image ID")]
     InvalidImageID(String),
+    #[error("Error parsing digest: {0}")]
+    DigestError(String),
+    #[error("Error parsing inputs stack JSON: {0}")]
+    ParseError(String),
 }
 
 impl From<std::io::Error> for VerificationError {

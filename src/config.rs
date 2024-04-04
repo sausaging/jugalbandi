@@ -1,8 +1,6 @@
 use log::{info, warn};
 use std::collections::{HashMap, VecDeque};
 use std::env;
-use std::fs;
-use std::io::Read;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -47,12 +45,13 @@ impl Config {
     }
 }
 
-pub fn handle_delete_files(files: &Vec<&String>) {
-    let config = Config::init();
-    if config.delete_files {
-        for file in files {
-            let _ =
-                std::fs::remove_file(file).map_err(|err| warn!("Error deleting file: {:?}", err));
+impl Clone for Config {
+    fn clone(&self) -> Self {
+        Config {
+            port: self.port,
+            workers: self.workers,
+            delete_files: self.delete_files,
+            u_port: self.u_port,
         }
     }
 }
@@ -137,22 +136,4 @@ pub async fn process_verification_queue(
             warn!("Failed to send verification proof: {}", response.status());
         }
     }
-}
-
-pub async fn handle_proof_bytes(proof_file_path: &str) -> Result<String, VerificationError> {
-    let mut file = fs::File::open(&proof_file_path)
-        .map_err(|err| VerificationError::IOError(err, "Error opening receipt file".to_string()))?;
-
-    let mut buffer: Vec<u8> = vec![0; 32];
-
-    file.read_exact(&mut buffer).map_err(|err| {
-        VerificationError::IOError(err, "Error reading first 32 bytes".to_string())
-    })?;
-
-    let mut remaining_content = String::new();
-    file.read_to_string(&mut remaining_content).map_err(|err| {
-        VerificationError::IOError(err, "Error reading remaining content".to_string())
-    })?;
-
-    Ok(remaining_content)
 }

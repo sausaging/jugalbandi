@@ -17,16 +17,16 @@ pub struct Sp1Proof {
 pub struct ProofDataMiden {
     pub tx_id: String,
     pub program_hash: String,
-    pub inputs_front_end: String,
-    pub outputs_front_end: String,
+    pub inputs_stack: String,
+    pub outputs_stack: String,
     pub proof_file_path: String,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct MidenProof {
     pub program_hash: String,
-    pub inputs_front_end: String,
-    pub outputs_front_end: String,
+    pub inputs_stack: String,
+    pub outputs_stack: String,
     pub proof_file_path: String,
 }
 
