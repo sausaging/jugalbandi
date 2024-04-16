@@ -63,6 +63,23 @@ async fn verify_sp1(
     HttpResponse::Ok().json(SubmitionResult { is_submitted: true })
 }
 
+#[post("/jolt-verify")]
+async fn verify_jolt(
+    jolt_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
+    data: web::Json<ProofDataSP1>,
+) -> impl Responder {
+    let mut jolt_hashmap = jolt_hashmap.lock().await;
+    let proof_data = data.into_inner();
+    jolt_hashmap.insert(
+        proof_data.tx_id.clone(),
+        Sp1Proof {
+            proof_file_path: proof_data.proof_file_path.clone(),
+            elf_file_path: proof_data.elf_file_path.clone(),
+        },
+    );
+    HttpResponse::Ok().json(SubmitionResult { is_submitted: true })
+}
+
 #[post("/miden-verify")]
 async fn verify_miden(
     miden_hashmap: web::Data<Arc<Mutex<HashMap<String, MidenProof>>>>,
@@ -105,6 +122,7 @@ async fn verify(
     sp1_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
     risc0_hashmap: web::Data<Arc<Mutex<HashMap<String, Risc0Proof>>>>,
     miden_hashmap: web::Data<Arc<Mutex<HashMap<String, MidenProof>>>>,
+    jolt_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
     data: web::Json<VerifyProof>,
 ) -> impl Responder {
     let proof_data = data.into_inner();
@@ -141,6 +159,20 @@ async fn verify(
         3 => {
             let risc0_hashmap = risc0_hashmap.lock().await;
             match risc0_hashmap.get(&proof_data.tx_id) {
+                Some(_risc0_proof) => {
+                    verify_queue.push_back(proof_data);
+                }
+                None => {
+                    warn!("Invalid RISC0 proof ID");
+                    return HttpResponse::Ok().json(SubmitionResult {
+                        is_submitted: false,
+                    });
+                }
+            }
+        }
+        4 => {
+            let jolt_hashmap = jolt_hashmap.lock().await;
+            match jolt_hashmap.get(&proof_data.tx_id) {
                 Some(_risc0_proof) => {
                     verify_queue.push_back(proof_data);
                 }

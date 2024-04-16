@@ -9,7 +9,7 @@ use crate::errors::VerificationError;
 use crate::models::{
     MidenProof, PostVerificationResult, Risc0Proof, Sp1Proof, VerificationResult, VerifyProof,
 };
-use crate::services::{miden_verifier, risc0_verifier, sp1_verifier};
+use crate::services::{jolt_verifier, miden_verifier, risc0_verifier, sp1_verifier};
 
 pub struct Config {
     pub port: u16,
@@ -76,6 +76,7 @@ pub async fn process_verification_queue(
     _sp1_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
     _risc0_hashmap: Arc<Mutex<HashMap<String, Risc0Proof>>>,
     _miden_hashmap: Arc<Mutex<HashMap<String, MidenProof>>>,
+    _jolt_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
 ) {
     loop {
         let mut queue = queue.lock().await;
@@ -105,6 +106,12 @@ pub async fn process_verification_queue(
                 let risc0_hashmap = _risc0_hashmap.lock().await;
                 let risc0_proof = risc0_hashmap.get(&verification_proof.tx_id).unwrap();
                 let verification_result = risc0_verifier::verify(risc0_proof).await;
+                is_valid = handle_verification_result(verification_result);
+            }
+            4 => {
+                let jolt_hashmap = _jolt_hashmap.lock().await;
+                let jolt_proof = jolt_hashmap.get(&verification_proof.tx_id).unwrap();
+                let verification_result = jolt_verifier::verify(jolt_proof).await;
                 is_valid = handle_verification_result(verification_result);
             }
             _ => {

@@ -7,8 +7,8 @@ use tokio::task;
 use crate::config::{process_verification_queue, Config};
 use crate::logging::init_logger;
 use crate::models::Ports;
-use crate::routes::{hello, ping, ping_single, verify, verify_miden, verify_risc0, verify_sp1};
-use crate::storage::{MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP, VERIFY_QUEUE};
+use crate::routes::{hello, ping, ping_single, verify, verify_miden, verify_risc0, verify_sp1, verify_jolt};
+use crate::storage::{MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP, VERIFY_QUEUE, JOLT_HASHMAP};
 
 mod config;
 mod errors;
@@ -26,12 +26,14 @@ async fn main() -> std::io::Result<()> {
     let sp1_hashmap = SP1_HASHMAP.clone();
     let risc0_hashmap = RISC0_HASHMAP.clone();
     let miden_hashmap = MIDEN_HASHMAP.clone();
+    let jolt_hashmap = JOLT_HASHMAP.clone();
     let port_index = storage::PORT_INDEX.clone();
     task::spawn(process_verification_queue(
         queue.clone(),
         sp1_hashmap.clone(),
         risc0_hashmap.clone(),
         miden_hashmap.clone(),
+        jolt_hashmap.clone(),
     ));
     HttpServer::new(move || {
         App::new()
@@ -40,6 +42,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(sp1_hashmap.clone()))
             .app_data(web::Data::new(risc0_hashmap.clone()))
             .app_data(web::Data::new(miden_hashmap.clone()))
+            .app_data(web::Data::new(jolt_hashmap.clone()))
             .app_data(web::Data::new(Ports {
                 instantiated_ports: vec![8081, 8082, 8083, 8084, 8085],
                 uninstantiated_ports: vec![8086, 8087, 8088, 8089, 8090],
@@ -49,6 +52,7 @@ async fn main() -> std::io::Result<()> {
             .service(verify_sp1)
             .service(verify_miden)
             .service(verify_risc0)
+            .service(verify_jolt)
             .service(verify)
             .service(ping)
             .service(ping_single)
