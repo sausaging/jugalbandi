@@ -1,8 +1,9 @@
-use log::warn;
+use log::{warn, info};
 use miden::StackOutputs;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::num::ParseIntError;
+use std::fs::{File, OpenOptions};
 
 use crate::config::Config;
 use crate::errors::VerificationError;
@@ -61,4 +62,32 @@ pub fn handle_delete_files(files: &Vec<&String>) {
                 std::fs::remove_file(file).map_err(|err| warn!("Error deleting file: {:?}", err));
         }
     }
+}
+
+pub fn handle_bytes(source_file: &str) -> std::io::Result<()> {
+    // target file is source file + 1;
+    let target_file = format!("{}.tmp", source_file);
+    let mut source = File::open(source_file)?;
+    let mut target = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(&target_file)?;
+
+    let mut buffer = [0; 4096]; // Adjust buffer size for performance if needed
+
+    // Skip first 32 bytes
+    source.read(&mut buffer[..32])?;
+
+    // Read remaining content and write to new file
+    loop {
+        let read_bytes = source.read(&mut buffer)?;
+        if read_bytes == 0 {
+            break;
+        }
+        target.write_all(&buffer[..read_bytes])?;
+    }
+
+    info!("Successfully created '{}' excluding first 32 bytes of '{}'", target_file, source_file);
+
+    Ok(())
 }

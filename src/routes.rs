@@ -5,8 +5,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::models::{
-    MidenProof, Ping, PingSingle, Ports, ProodDataRisc0, ProofDataMiden, ProofDataSP1, Risc0Proof,
-    Sp1Proof, SubmitionResult, VerifyProof,
+    JoltProof, MidenProof, Ping, PingSingle, Ports, ProodDataRisc0, ProofDataMiden, ProofDataSP1,
+    Risc0Proof, Sp1Proof, SubmitionResult, VerifyProof,
 };
 
 #[get("/")]
@@ -65,14 +65,14 @@ async fn verify_sp1(
 
 #[post("/jolt-verify")]
 async fn verify_jolt(
-    jolt_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
+    jolt_hashmap: web::Data<Arc<Mutex<HashMap<String, JoltProof>>>>,
     data: web::Json<ProofDataSP1>,
 ) -> impl Responder {
     let mut jolt_hashmap = jolt_hashmap.lock().await;
     let proof_data = data.into_inner();
     jolt_hashmap.insert(
         proof_data.tx_id.clone(),
-        Sp1Proof {
+        JoltProof {
             proof_file_path: proof_data.proof_file_path.clone(),
             elf_file_path: proof_data.elf_file_path.clone(),
         },
@@ -122,9 +122,10 @@ async fn verify(
     sp1_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
     risc0_hashmap: web::Data<Arc<Mutex<HashMap<String, Risc0Proof>>>>,
     miden_hashmap: web::Data<Arc<Mutex<HashMap<String, MidenProof>>>>,
-    jolt_hashmap: web::Data<Arc<Mutex<HashMap<String, Sp1Proof>>>>,
+    jolt_hashmap: web::Data<Arc<Mutex<HashMap<String, JoltProof>>>>,
     data: web::Json<VerifyProof>,
 ) -> impl Responder {
+    info!("{:?}", data);
     let proof_data = data.into_inner();
     let mut verify_queue = queue.lock().await;
     match proof_data.verify_type {
@@ -173,11 +174,11 @@ async fn verify(
         4 => {
             let jolt_hashmap = jolt_hashmap.lock().await;
             match jolt_hashmap.get(&proof_data.tx_id) {
-                Some(_risc0_proof) => {
+                Some(_jolt_proof) => {
                     verify_queue.push_back(proof_data);
                 }
                 None => {
-                    warn!("Invalid RISC0 proof ID");
+                    warn!("Invalid Jolt proof ID");
                     return HttpResponse::Ok().json(SubmitionResult {
                         is_submitted: false,
                     });

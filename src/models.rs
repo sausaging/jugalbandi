@@ -14,6 +14,19 @@ pub struct Sp1Proof {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct ProofDataJolt {
+    pub tx_id: String,
+    pub proof_file_path: String,
+    pub elf_file_path: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JoltProof {
+    pub proof_file_path: String,
+    pub elf_file_path: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct ProofDataMiden {
     pub tx_id: String,
     pub program_hash: String,

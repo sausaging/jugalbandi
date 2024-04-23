@@ -1,10 +1,8 @@
-use std::fs;
 use log::{info, warn};
 use miden::{Digest, ExecutionProof, Kernel, ProgramInfo, StackInputs};
+use std::fs;
 
-use super::helpers::{
-    deserialize_stack_outputs, handle_delete_files, handle_proof_bytes, string_to_u64_vec,
-};
+use super::helpers::{deserialize_stack_outputs, handle_delete_files, string_to_u64_vec};
 use crate::errors::VerificationError;
 use crate::models::{MidenProof, Proof, VerificationResult};
 

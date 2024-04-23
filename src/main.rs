@@ -7,8 +7,10 @@ use tokio::task;
 use crate::config::{process_verification_queue, Config};
 use crate::logging::init_logger;
 use crate::models::Ports;
-use crate::routes::{hello, ping, ping_single, verify, verify_miden, verify_risc0, verify_sp1, verify_jolt};
-use crate::storage::{MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP, VERIFY_QUEUE, JOLT_HASHMAP};
+use crate::routes::{
+    hello, ping, ping_single, verify, verify_jolt, verify_miden, verify_risc0, verify_sp1,
+};
+use crate::storage::{JOLT_HASHMAP, MIDEN_HASHMAP, RISC0_HASHMAP, SP1_HASHMAP, VERIFY_QUEUE};
 
 mod config;
 mod errors;

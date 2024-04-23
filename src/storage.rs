@@ -1,4 +1,4 @@
-use crate::models::{MidenProof, Risc0Proof, Sp1Proof, VerifyProof};
+use crate::models::{MidenProof, Risc0Proof, Sp1Proof, VerifyProof, JoltProof};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -11,7 +11,7 @@ lazy_static! {
         Arc::new(Mutex::new(HashMap::new()));
     pub static ref RISC0_HASHMAP: Arc<Mutex<HashMap<String, Risc0Proof>>> =
         Arc::new(Mutex::new(HashMap::new()));
-    pub static ref JOLT_HASHMAP: Arc<Mutex<HashMap<String, Sp1Proof>>> =
+    pub static ref JOLT_HASHMAP: Arc<Mutex<HashMap<String, JoltProof>>> =
         Arc::new(Mutex::new(HashMap::new()));
     pub static ref VERIFY_QUEUE: Arc<Mutex<VecDeque<VerifyProof>>> =
         Arc::new(Mutex::new(VecDeque::new()));
