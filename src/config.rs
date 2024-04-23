@@ -7,7 +7,8 @@ use tokio::sync::Mutex;
 
 use crate::errors::VerificationError;
 use crate::models::{
-    MidenProof, PostVerificationResult, Risc0Proof, Sp1Proof, VerificationResult, VerifyProof,
+    JoltProof, MidenProof, PostVerificationResult, Risc0Proof, Sp1Proof, VerificationResult,
+    VerifyProof,
 };
 use crate::services::{jolt_verifier, miden_verifier, risc0_verifier, sp1_verifier};
 
@@ -76,7 +77,7 @@ pub async fn process_verification_queue(
     _sp1_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
     _risc0_hashmap: Arc<Mutex<HashMap<String, Risc0Proof>>>,
     _miden_hashmap: Arc<Mutex<HashMap<String, MidenProof>>>,
-    _jolt_hashmap: Arc<Mutex<HashMap<String, Sp1Proof>>>,
+    _jolt_hashmap: Arc<Mutex<HashMap<String, JoltProof>>>,
 ) {
     loop {
         let mut queue = queue.lock().await;
